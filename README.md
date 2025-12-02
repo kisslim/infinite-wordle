@@ -1,83 +1,86 @@
-# computable infinite Wordle
-a game to guess numbers between 0 and 1.
+# Computable Infinite Wordle: Formal Model
 
-- The secret is a **computable real number** in \([0,1)\).
-- Base \( b \ge 3 \).
-- You guess by **providing a Turing machine** that, given \( k \) integers \(n_1, n_2, \dots, n_k\), outputs \( k \) digits of your guessed number at those positions.
-- After each guess, you get feedback for each digit: 🟩 (exact match), 🟨 (digit differs by 1 modulo base? or absolute difference = 1?), ⬛ (absolute difference ≥ 2).
-- Goal: deduce the secret’s digits in all positions (or up to any desired precision).
+## Game Setup
 
----
-
-## **Formalizing the game**
-
-Let’s set \( b \ge 3 \), secret \( S = 0.s_1 s_2 s_3\dots \) (each \( s_i \in \{0,1,\dots,b-1\} \)), \( S \) computable.
-
-**One turn:**
-1. Player chooses \( k \) positions \( p_1 < p_2 < \dots < p_k \) (could be any positive integers).
-2. Player provides a Turing machine \( M \) that on input \( p_j \) outputs guess digit \( g_{p_j} \in \{0,\dots,b-1\} \).
-3. For each \( j \):
-   - Compute \( s_{p_j} \) (possible since \( S \) is computable).
-   - Compare \( g_{p_j} \) with \( s_{p_j} \):
-     - If \( g_{p_j} = s_{p_j} \) → 🟩
-     - If \( |g_{p_j} - s_{p_j}| = 1 \) → 🟨
-     - Else (difference ≥ 2) → ⬛
-4. Player receives tuple of colored feedback for \( p_1, \dots, p_k \).
-
-**Rules:**
-- Player can adaptively choose \( k \) and \( M \) each turn based on previous feedback.
-- Game ends when player can produce a Turing machine that exactly outputs \( s_n \) for all \( n \) (or when they claim to know the secret and verify).
+Let $b \geq 3$ be the base.  
+The secret is a computable real number $S \in [0,1)$ with expansion  
+$$
+S = 0.s_1 s_2 s_3 \dots, \quad s_i \in \{0,1,\dots,b-1\}.
+$$
+Let $M_S$ be a Turing machine that computes $s_n$ on input $n$.
 
 ---
 
-## **Why computable secret?**
-If secret is computable, then checking equality with guesses is computable (though in reality, checking if two TMs compute the same function is not computable in general — but here the secret TM is fixed, so feedback for chosen positions is computable).
+## One Turn
 
-The “feedback rule” avoids giving exact digit when wrong, giving only near/far info.
-
----
-
-## **Strategic depth**
-In base 3 with the difference rule:
-- Digit value difference = 0 → 🟩  
-- Digit value difference = 1 → 🟨  
-- Digit value difference ≥ 2 → ⬛
-
-For base \( b > 3 \), the “near” (🟨) could be \( \pm 1 \) mod \( b \) or absolute difference = 1; but if it’s mod \( b \), then every digit has exactly 2 neighbors (e.g., in base 10, digit 0’s neighbors are 1 and 9 if wrap-around).  
-You said “near” means ±1, not modulo wrap, so for large bases, digits 0 and b-1 have only one neighbor, others have two.
+1. **Player chooses** $k$ distinct positions $p_1 < p_2 < \dots < p_k \in \mathbb{N}$.
+2. **Player provides** a Turing machine $M$ such that for each $p_j$, $M(p_j)$ outputs a guess digit $g_{p_j} \in \{0,\dots,b-1\}$.
+3. **Feedback** for each $j$:
+   - Compute $s_{p_j}$ using $M_S$.
+   - Let $d = |g_{p_j} - s_{p_j}|$.
+     - If $d = 0$ → 🟩 (exact match)
+     - If $d = 1$ → 🟨 (neighbor)
+     - If $d \geq 2$ → ⬛ (far)
+4. Player receives the $k$-tuple of colors $(c_1,\dots,c_k)$.
 
 ---
 
-## **Example play in base 4**
-Secret: \( 0.2301\dots \)  
-Guess positions \( p = 1,2,3,4 \), guess digits \( 1,3,0,1 \):
+## Allowed Strategies
 
-Pos1: guess 1, secret 2 → diff 1 → 🟨  
-Pos2: guess 3, secret 3 → diff 0 → 🟩  
-Pos3: guess 0, secret 0 → 🟩  
-Pos4: guess 1, secret 1 → 🟩
-
-Feedback: 🟨🟩🟩🟩
+- The player may choose $k$ and $M$ adaptively based on all previous feedback.
+- The game ends when the player can produce a TM that agrees with $M_S$ on all $n$ (or after finite turns, claims to know the secret and verifies it).
 
 ---
 
-## **Key challenge for the player**
-The Turing machine \( M \) encodes a **function** \( f: \mathbb{N} \to \{0,\dots,b-1\} \) (restricted to guessed positions).  
-So the player can guess a **computable pattern** for the secret’s digits, test a few positions, refine.
+## Notes on Feedback Semantics
 
-Because the secret is computable, there exists a TM for it.  
-So game is: **find that TM** using limited “colored digit” queries.
+The "near" condition is **absolute difference 1**, not modular.  
+Thus, digit adjacency forms a simple path graph:
+$$
+0 \text{ — } 1 \text{ — } 2 \text{ — } \dots \text{ — } (b-1).
+$$
+Digits $0$ and $b-1$ have only one neighbor each; others have two.
+
+---
+
+## Example ($b=4$)
+
+Secret: $S = 0.2301\dots$  
+Guess positions $p = 1,2,3,4$, guess digits $1,3,0,1$.
+
+- $|1-2| = 1$ → 🟨
+- $|3-3| = 0$ → 🟩
+- $|0-0| = 0$ → 🟩
+- $|1-1| = 0$ → 🟩
+
+Feedback: 🟨🟩🟩🟩.
 
 ---
 
-## **Interesting theoretical questions**
-1. **Is this game winnable in finite steps for any computable secret?**  
-   Possibly yes — you can enumerate all TMs and test positions until only one is consistent. But “consistent” here means: for all tested positions, |g−s| yields correct color. That’s a c.e. condition.
+## Theoretical Questions
 
-2. **Lower bound on needed turns** — in worst case, could take many turns because yellow feedback is ambiguous.
+1. **Winnability**: Is the game winnable in finite turns for every computable secret?  
+   *Potential approach*: Enumerate all TMs, test positions adaptively, eliminate inconsistent ones. Consistency is computably enumerable.
 
-3. **Effect of base** — higher base makes ⬛ more common (since difference ≥ 2 is easier), maybe easier to zero in?
+2. **Query Complexity**: Worst‑case number of turns as a function of $b$ and the Kolmogorov complexity of $M_S$?
 
-4. **Can player ask for arbitrary positions each turn?** Yes — adaptive.
+3. **Base Effect**: Higher $b$ implies more ⬛ feedback (since $|g-s| \geq 2$ is easier to achieve), possibly speeding up convergence.
+
+4. **Alternative Yellow Rule**: If yellow were **modular difference 1** (wrap‑around), adjacency becomes a cycle, changing the information‑theoretic landscape.
 
 ---
+
+## Strategy Sketch for Base 4
+
+1. **Initial probe**: Guess all digits as $2$ on positions $1,\dots,k_0$.  
+   Feedback reveals exactly which digits are $2$ (🟩), which are $1$ or $3$ (🟨), and which are $0$ (⬛, since $|0-2|=2$).
+
+2. **Disambiguation of 🟨**:  
+   For each 🟨 position $p$, guess $1$ there (others fixed).  
+   - If feedback turns 🟩 → digit was $1$.  
+   - If feedback stays 🟨 → digit was $3$.  
+   - If turns ⬛ → digit was $0$ (but that case already ruled out in step 1).
+
+3. **Iterate** with new candidate TM that fits all observed data, test new positions to refute incorrect TMs.
+
+4. **Exploit computability**: The secret’s TM has finite description; candidate TMs can be enumerated and tested.
